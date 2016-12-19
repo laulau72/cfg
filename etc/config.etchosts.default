@@ -1,0 +1,13 @@
+[LABEL:D::::/etc/hosts]
+$HOSTNAME
+[/LABEL]
+
+[LABEL:R::::/etc/hosts]
+^$iphost.*
+---
+$iphost $fqdnhost       $HOSTNAME
+[/LABEL]
+
+[LABEL:a::::/etc/hosts]
+$iphost $fqdnhost       $HOSTNAME
+[/LABEL]

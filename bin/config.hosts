@@ -1,0 +1,47 @@
+#!/bin/ksh
+#
+##### config.hosts
+##
+## Setup /etc/hosts
+##
+##---
+
+. $FACTORY_ROOT/core/functions
+$FULLDEBUG
+
+fatalcheckid root
+etchostfile=/etc/hosts
+
+# Get the list of config file
+configfiles=$(findcfg -l $FACTORY_ROOT/cfg/etc/config.etchosts)
+
+# get IP and FQDN from the DNS
+export iphost=$(nslookup `hostname`|tail -2 |grep "^Address:" |awk '{print $2}')
+export fqdnhost=$(nslookup `hostname` |grep "^Name:" |awk '{print $2}')
+
+if [[ "$fqdnhost" = "" || "$iphost" = "" ]]
+then
+	fatalerror 2 "$HOSTNAME not defined on the dns (nslookup)!"
+fi
+
+error=0
+for cfgfile in $configfiles
+do
+	$FACTORY_ROOT/core/bin/configuremultiplefile -f $cfgfile
+	rc=$?
+	if [[ "$rc" = "0" ]]
+	then
+		loginfo "Setup of $etchostfile with config file $cfgfile successfuly done"
+	else
+		logerror "Failed to setup $etchostfile with config file $cfgfile"
+		error=1
+	fi
+done	
+
+logfromfile I $etchostfile
+if [ $error -eq 0 ]
+then
+	loginfo "Setup of $etchostfile Successful !"
+else
+	fatalerror "Failed to setup $etchostfile !"
+fi
