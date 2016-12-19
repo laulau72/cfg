@@ -1,0 +1,40 @@
+#!/bin/ksh
+#
+##### config.hostname
+##
+## Set hostname to the short hostname, without FQDN.
+## Should be run on AIX server only
+##
+##---
+
+. $FACTORY_ROOT/core/functions
+$FULLDEBUG
+
+fatalcheckid root
+fatalcheckplatform AIX
+
+HostName=$(hostname)
+ShortHostName=$(hostname |awk -F"." '{print $1}')
+
+if [[ "$HostName" = "$ShortHostName" ]]
+then
+	loginfo "Hostname already set to: $HostName"
+	exit 0
+else
+	loginfo "Setting hostname to $ShortHostName (old hostname:$HostName)"
+	if test -z 'lsdev -C -S1 -F name -l inet0' 
+        then
+        	mkdev -t inet
+	fi
+	chdev -l inet0 -a hostname=$ShortHostName
+        if [ -x /usr/sbin/hostid ]
+        then
+        	/usr/sbin/hostid `hostname`
+        	if [ -x /usr/lib/lpd/pio/etc/piodmgr ]
+                then
+                	/usr/lib/lpd/pio/etc/piodmgr -c > /dev/null 2>&1
+		fi
+        else
+                logwarn "Could not find /usr/sbin/hostid"
+        fi                                      
+fi
