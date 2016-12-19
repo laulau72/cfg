@@ -1,0 +1,107 @@
+#!/bin/ksh
+#
+#		Configure sshd's sshd_config
+#
+# Input
+#		N settings files
+#		1 generator (/etc/ssh/sshd_config)
+
+. $FACTORY_ROOT/core/functions
+
+ext=$(date +"%Y%m%d%H%M%S")
+fatalcheckid root
+
+case "$FACTORY_PLATFORM" in
+AIX)
+	INSTALL=/usr/bin/installbsd
+	SSHOWNER=root
+	SSHGROUP=system
+	;;
+Linux)
+	INSTALL=/usr/bin/install
+	CHKCONFIG=/sbin/chkconfig
+	POSSIBLESERVICENAMES="sshd openssh"
+	SSHOWNER=root
+	SSHGROUP=root
+	;;
+*)	
+        fatalerror 1 "No configuration for this Platform: $FACTORY_PLATFORM"
+        ;;
+esac
+
+
+loginfo "Setting up sshd_config"
+
+#
+# archive original file
+#
+
+if [ -f /etc/ssh/sshd_config ]
+then
+	fatalrunit cp /etc/ssh/sshd_config /etc/ssh/sshd_config.before-cfg.$ext
+fi
+
+
+
+settings=$(reverse $(findcfglist $FACTORY_ROOT/cfg/etc/sshd-settings))
+if [ $? -ne 0 ]
+then
+	logerror "Can not find ssh settings file"
+	exit 1
+fi
+
+loginfo "Configuring ssh using settings from $settings"
+
+sshdconfgen=$(findcfgfile $FACTORY_ROOT/cfg/etc/sshd_config-generator)
+
+logdebug "Generator for /etc/ssh/sshd_config is $sshdconfgen"
+
+for setting in $settings; do
+	logdebug "Sourcing setting file $setting"
+	logfromfile I $setting
+	. $setting
+done
+
+tmpsshdconf=$(add_temp_files sshd_config)
+
+# logging in runit() will cause log output to be sent to >redirected file
+# FACTORY_NOTTY prevents this
+export FACTORY_NOTTY=1
+fatalrunit . $sshdconfgen > $tmpsshdconf
+unset FACTORY_NOTTY
+
+fatalrunit $INSTALL -m 644 -o $SSHOWNER -g $SSHGROUP $tmpsshdconf /etc/ssh/sshd_config
+
+loginfo "Refresh sshd daemon"
+case "$FACTORY_PLATFORM" in
+AIX)
+        loginfo "Stop sshd"
+        /usr/bin/stopsrc -s sshd
+        rc=$?
+        if [[ "$rc" != "0" ]]
+        then
+                fatalerror 2 "Stop sshd failed!"
+        fi
+        loginfo "Start sshd"
+        /usr/bin/startsrc -s sshd
+        rc=$?
+        if [[ "$rc" != "0" ]]
+        then
+                fatalerror 2 "Start sshd failed!"
+        fi
+        ;;
+Linux)
+	for servicename in $POSSIBLESERVICENAMES; do
+		if [ -x /etc/init.d/$servicename ]; then
+			fatalrunit $CHKCONFIG $servicename on
+			fatalrunit /etc/init.d/$servicename restart
+		fi
+	done
+	;;
+*)
+	logwarn "Refresh sshd daemon not implemented for $FACTORY_PLATFORM"
+	;;
+esac
+	
+remove_temp_files
+
