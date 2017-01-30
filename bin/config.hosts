@@ -6,6 +6,9 @@
 ##
 ##---
 
+FACTORY_ROOT=${FACTORY_ROOT:=/usr/local/factory}
+export FACTORY_ROOT
+
 . $FACTORY_ROOT/core/functions
 $FULLDEBUG
 

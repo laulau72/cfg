@@ -6,6 +6,9 @@
 #		N settings files
 #		1 generator (/etc/ssh/sshd_config)
 
+FACTORY_ROOT=${FACTORY_ROOT:=/usr/local/factory}
+export FACTORY_ROOT
+
 . $FACTORY_ROOT/core/functions
 
 ext=$(date +"%Y%m%d%H%M%S")
