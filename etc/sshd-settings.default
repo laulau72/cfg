@@ -8,4 +8,4 @@ X11_FORWARDING=no
 X11_FORWARDING_LOCAL=yes
 SFTP_PATH=/usr/sbin/sftp-server
 USE_PAM=yes
-BANNER=/etc/ssh/sshd_banner
+BANNER=${SSHDIR}/sshd_banner

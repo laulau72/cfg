@@ -36,7 +36,7 @@ function usage {
 		This script will configure the sshd service.
 
 	Option:
-		-d ssh_dir	Location of the ssh directory (default: /etc/ssh
+		-d ssh_dir	Location of the ssh directory (default: /etc/ssh)
 	"
 	exit 22
 
@@ -52,6 +52,7 @@ do
                         ;;
         esac
 done
+export SSHDIR=$SSHDIR
 
 case "$FACTORY_PLATFORM" in
 AIX)
@@ -112,7 +113,7 @@ export FACTORY_NOTTY=1
 fatalrunit . $sshdconfgen > $tmpsshdconf
 unset FACTORY_NOTTY
 
-fatalrunit $INSTALL -m 644 -o $SSHOWNER -g $SSHGROUP $tmpsshdconf /etc/ssh/sshd_config
+fatalrunit $INSTALL -m 644 -o $SSHOWNER -g $SSHGROUP $tmpsshdconf ${SSHDIR}/sshd_config
 
 loginfo "Refresh sshd daemon"
 case "$FACTORY_PLATFORM" in
