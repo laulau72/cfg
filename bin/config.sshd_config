@@ -1,18 +1,57 @@
 #!/bin/ksh
 #
-#		Configure sshd's sshd_config
-#
-# Input
-#		N settings files
-#		1 generator (/etc/ssh/sshd_config)
+##### config.sshd_config
+##
+## Configure sshd's sshd_config
+##
+###### Input:
+##
+## -d ssh_dir	Location of the ssh directory (default: /etc/ssh)
+##
+###### Ouput:
+##
+## sshd_config 	Generated with etc/sshd_config-generator and cfg/etc/sshd-settings
+##
+###### Return code:
+##
+## *  0:        Ok
+## *  1:	Can not find ssh settings file
+## * 22:	Usage
+##
+##---
 
 FACTORY_ROOT=${FACTORY_ROOT:=/usr/local/factory}
 export FACTORY_ROOT
 
 . $FACTORY_ROOT/core/functions
 
+prgm=$0
 ext=$(date +"%Y%m%d%H%M%S")
 fatalcheckid root
+
+function usage {
+	loginfo "Usage: $prgm [-d ssh_dir]
+
+	Descrition:
+		This script will configure the sshd service.
+
+	Option:
+		-d ssh_dir	Location of the ssh directory (default: /etc/ssh
+	"
+	exit 22
+
+}
+
+SSHDIR=/etc/ssh
+while getopts ":d:" opt
+do
+        case $opt in
+                d)     	SSHDIR=$OPTARG
+                        ;;
+		*|\?)	usage
+                        ;;
+        esac
+done
 
 case "$FACTORY_PLATFORM" in
 AIX)
@@ -39,9 +78,9 @@ loginfo "Setting up sshd_config"
 # archive original file
 #
 
-if [ -f /etc/ssh/sshd_config ]
+if [ -f ${SSHDIR}/sshd_config ]
 then
-	fatalrunit cp /etc/ssh/sshd_config /etc/ssh/sshd_config.before-cfg.$ext
+	fatalrunit cp ${SSHDIR}/sshd_config ${SSHDIR}/sshd_config.before-cfg.$ext
 fi
 
 
@@ -57,7 +96,7 @@ loginfo "Configuring ssh using settings from $settings"
 
 sshdconfgen=$(findcfgfile $FACTORY_ROOT/cfg/etc/sshd_config-generator)
 
-logdebug "Generator for /etc/ssh/sshd_config is $sshdconfgen"
+logdebug "Generator for ${SSHDIR}/sshd_config is $sshdconfgen"
 
 for setting in $settings; do
 	logdebug "Sourcing setting file $setting"
